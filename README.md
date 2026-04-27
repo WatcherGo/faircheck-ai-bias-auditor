@@ -1,11 +1,41 @@
-<div align="center">
+# AI Bias Audit Platform
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+A professional-grade auditing platform designed to detect, visualize, and mitigate algorithmic bias in machine learning models.
 
-  <h1>Built with AI Studio</h2>
+## 🚀 Features
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **Bias Metrics Visualization**: Real-time monitoring of critical fairness metrics:
+  - **Disparate Impact Ratio**: Identifying proportion differences in favorable outcomes.
+  - **Statistical Parity Difference**: Measuring the gap in selection rates between groups.
+  - **Equal Opportunity Difference**: Comparing true positive rates across protected attributes.
+- **Root Cause Analysis**: AI-powered insights that correlate features with biased outcomes.
+- **Fairness Simulator**: Interactive threshold control to see how decision boundaries affect fairness vs. accuracy.
+- **One-Click Mitigation**: Simulation of reweighting techniques to balance model outcomes.
+- **Responsive Design**: Polished, dark-themed interface built with Tailwind CSS and Framer Motion.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## 🛠️ Tech Stack
 
-</div>
+- **Framework**: React 18+ with Vite
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Icons**: Lucide React
+- **Data Visualization**: Recharts & Custom SVG Gauges
+- **Language**: TypeScript
+
+## 📊 Fairness Metrics Explained
+
+| Metric | Goal | Threshold |
+| :--- | :--- | :--- |
+| **Disparate Impact** | Value > 0.85 | Avoids "80% rule" violations |
+| **Stat. Parity** | Value < 0.05 | Ensures groups receive similar outcomes |
+| **Equal Opportunity** | Value < 0.05 | Ensures model is equally "accurate" for all groups |
+
+## 🧪 Simulation Data
+
+The platform comes with pre-loaded datasets including:
+- **Loan Approvals**: Monitoring bias in credit scoring.
+- **Hiring Pipeline**: Auditing gender and ethnicity bias in recruitment.
+- **Health Risk**: Analyzing disparities in medical triage algorithms.
+
+---
+*Note: This platform is a simulation for educational and auditing demonstration purposes.*

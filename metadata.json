@@ -1,0 +1,6 @@
+{
+  "name": "FairCheck",
+  "description": "An AI bias audit dashboard for detecting and explaining hidden discrimination in datasets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

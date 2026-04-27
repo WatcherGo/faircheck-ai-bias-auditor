@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-slate-950: #0f172a;
+  --color-slate-900: #1e293b;
+  --color-slate-800: #334155;
+  
+  --color-surface: #1e293b;
+  --color-border: #334155;
+  --color-primary: #3b82f6;
+  --color-emerald: #10b981;
+  --color-rose: #f43f5e;
+  --color-amber: #f59e0b;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-50 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--color-border);
+  }
+
+  .glass-card {
+    @apply rounded-xl p-6 transition-all duration-300;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  .mesh-bg {
+    background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0, transparent 50%),
+                      radial-gradient(at 50% 0%, rgba(16, 185, 129, 0.03) 0, transparent 50%),
+                      radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.05) 0, transparent 50%);
+  }
+
+  .glass-button {
+    @apply border border-border rounded-lg px-4 py-2 transition-all duration-300 active:scale-95 font-semibold text-sm;
+    background-color: transparent;
+  }
+
+  .glass-button:hover {
+    @apply bg-white/5 border-primary/30;
+  }
+  
+  .btn-primary {
+    @apply bg-primary hover:bg-blue-600 text-white rounded-lg px-6 py-2.5 transition-all duration-300 font-semibold text-sm shadow-lg shadow-blue-500/20 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply border border-border bg-slate-900 hover:bg-slate-800 text-slate-50 rounded-lg px-6 py-2.5 transition-all duration-300 font-semibold text-sm active:scale-95;
+  }
+
+  /* Loading Spinner Animation */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 2s linear infinite;
+  }
+}
