@@ -32,13 +32,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { DATASETS, Dataset } from './constants';
 import { cn } from './lib/utils';
 import { GoogleGenAI } from '@google/genai';
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  onAuthStateChanged, 
-  signOut, 
-  User 
-} from 'firebase/auth';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
 import { 
   collection, 
   addDoc, 
@@ -646,16 +640,11 @@ export default function App() {
 
 
   const getGeminiExplanation = async () => {
-    if (!metrics || !selectedDataset || !process.env.GEMINI_API_KEY || !analysis) return;
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey || !metrics || !selectedDataset || !analysis) return;
     
     setIsLoadingExplanation(true);
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("GEMINI_API_KEY is not configured. Please add VITE_GEMINI_API_KEY to your environment.");
-      }
-      const ai = new GoogleGenAI(apiKey);
-      
       const rootFeature = analysis.correlations[0];
       const mismatch = analysis.mismatch;
 
@@ -675,7 +664,8 @@ export default function App() {
       Return ONLY valid JSON in this format: 
       {"explanation": "A sentence about common bias results...", "root_cause": "The specific sentence explaining ${rootFeature.feature}'s role...", "fix": "A specific recommendation...", "root_feature": "${rootFeature.feature}", "correlation_value": ${rootFeature.correlation}}`;
 
-      const response = await ai.models.generateContent({
+      const ai = new GoogleGenAI({ apiKey });
+      const result = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
@@ -683,9 +673,13 @@ export default function App() {
         }
       });
 
-      const text = response.text;
-      if (!text) throw new Error("Empty response");
-      setExplanation(JSON.parse(text));
+      const text = result.text;
+      
+      if (!text) throw new Error("Empty response from AI");
+      
+      // Extract JSON if it's wrapped in markdown
+      const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
+      setExplanation(JSON.parse(jsonStr));
     } catch (error) {
       console.error("Gemini Error:", error);
       const rootFeature = analysis.correlations[0];
