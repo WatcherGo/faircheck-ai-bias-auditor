@@ -32,6 +32,59 @@ import { motion, AnimatePresence } from 'motion/react';
 import { DATASETS, Dataset } from './constants';
 import { cn } from './lib/utils';
 import { GoogleGenAI } from '@google/genai';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  onAuthStateChanged, 
+  signOut, 
+  User 
+} from 'firebase/auth';
+import { 
+  collection, 
+  addDoc, 
+  serverTimestamp, 
+  doc, 
+  getDocFromServer 
+} from 'firebase/firestore';
+import { auth, db } from './lib/firebase';
+
+// --- Error Handling ---
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 // --- Types & Interfaces ---
 interface BiasMetrics {
@@ -456,12 +509,73 @@ const MetricGauge = ({ value, label, min = 0, max = 1, target = 0.8, inverse = f
 };
 
 export default function App() {
+  const [user, setUser] = useState<User | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
   const [threshold, setThreshold] = useState(0.5);
   const [isFixed, setIsFixed] = useState(false);
   const [showFixModal, setShowFixModal] = useState(false);
   const [explanation, setExplanation] = useState<{ explanation: string; root_cause: string; fix: string; root_feature?: string; correlation_value?: number } | null>(null);
   const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+
+  // Initialize Auth
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+
+    // Test Connection
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if(error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    };
+    testConnection();
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  const saveAuditResult = async (metrics: BiasMetrics) => {
+    if (!user || !selectedDataset) return;
+    const path = 'audit_results';
+    try {
+      await addDoc(collection(db, path), {
+        datasetId: selectedDataset.id,
+        threshold,
+        isFixed,
+        metrics: {
+          disparateImpact: metrics.disparateImpact,
+          statisticalParity: metrics.statisticalParity,
+          equalOpportunity: metrics.equalOpportunity,
+        },
+        userId: user.uid,
+        timestamp: serverTimestamp(),
+      });
+      alert("Audit result successfully synced to Firestore!");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    }
+  };
 
   const toggleMitigation = () => {
     if (!isFixed) {
@@ -665,6 +779,26 @@ END OF REPORT
         </div>
         <div className="flex items-center gap-3 md:gap-6">
           <span className="hidden lg:inline text-sm text-slate-400">Project: Google Solution Challenge 2026</span>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <img src={user.photoURL || ""} alt={user.displayName || ""} className="w-8 h-8 rounded-full border border-primary/20" />
+              <button 
+                onClick={handleLogout}
+                className="text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+                id="logout-button"
+              >
+                Log Out
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={handleLogin}
+              className="bg-primary hover:bg-primary/90 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-primary/20"
+              id="login-button"
+            >
+              Sign In
+            </button>
+          )}
           <div className="badge-live bg-rose-500/10 text-rose-500 px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[11px] font-bold border border-rose-500/20 whitespace-nowrap">
             ● BIAS DETECTED
           </div>
@@ -766,18 +900,32 @@ END OF REPORT
                 exit={{ opacity: 0, y: -10 }}
                 className="max-w-6xl mx-auto space-y-6 md:space-y-8"
               >
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">{selectedDataset.name} Audit</h2>
-                    <p className="text-slate-400 text-xs md:text-sm mt-1 flex items-center gap-2">
-                      Scanning for {selectedDataset.protected_feature} in {selectedDataset.description.toLowerCase()}
-                    </p>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">{selectedDataset.name} Audit</h2>
+                      <p className="text-slate-400 text-xs md:text-sm mt-1 flex items-center gap-2">
+                        Scanning for {selectedDataset.protected_feature} in {selectedDataset.description.toLowerCase()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <button 
+                        onClick={() => saveAuditResult(analysis!.metrics)} 
+                        disabled={!user}
+                        className={cn(
+                          "flex-1 sm:flex-none btn-secondary flex items-center justify-center gap-2 py-2 text-xs md:text-sm",
+                          !user && "opacity-50 cursor-not-allowed"
+                        )}
+                        title={user ? "Save audit to Cloud" : "Sign in to save audits"}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        Save Audit
+                      </button>
+                      <button onClick={downloadReport} className="flex-1 sm:flex-none btn-secondary flex items-center justify-center gap-2 py-2 text-xs md:text-sm">
+                        <Download className="w-4 h-4" />
+                        Export Report
+                      </button>
+                    </div>
                   </div>
-                  <button onClick={downloadReport} className="w-full sm:w-auto btn-secondary flex items-center justify-center gap-2 py-2 text-xs md:text-sm">
-                    <Download className="w-4 h-4" />
-                    Export Audit Report
-                  </button>
-                </div>
 
                 {/* Mobile Fairness Controls */}
                 <div className="lg:hidden bg-surface border border-border rounded-xl p-4 space-y-4">

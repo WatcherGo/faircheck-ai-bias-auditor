@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "AuditResult": {
+      "title": "Audit Result",
+      "description": "Records of AI Bias Audit sessions",
+      "type": "object",
+      "properties": {
+        "datasetId": { "type": "string", "description": "ID of the dataset audited" },
+        "threshold": { "type": "number", "description": "Decision threshold used" },
+        "isFixed": { "type": "boolean", "description": "Whether bias mitigation was applied" },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "disparateImpact": { "type": "number" },
+            "statisticalParity": { "type": "number" },
+            "equalOpportunity": { "type": "number" }
+          }
+        },
+        "userId": { "type": "string", "description": "UID of the auditor" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the audit was performed" }
+      },
+      "required": ["datasetId", "threshold", "isFixed", "userId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/audit_results/{auditId}": {
+      "schema": "AuditResult",
+      "description": "Collection of all audit results"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // AuditResult Validation
+    function isValidAuditResult(data) {
+      return data.keys().hasAll(['datasetId', 'threshold', 'isFixed', 'metrics', 'userId', 'timestamp'])
+        && data.keys().size() == 6
+        && data.datasetId is string && data.datasetId.size() <= 100
+        && data.threshold is number
+        && data.isFixed is bool
+        && data.userId == request.auth.uid
+        && data.timestamp == request.time
+        && data.metrics is map
+        && data.metrics.keys().hasAll(['disparateImpact', 'statisticalParity', 'equalOpportunity'])
+        && data.metrics.keys().size() == 3
+        && data.metrics.disparateImpact is number
+        && data.metrics.statisticalParity is number
+        && data.metrics.equalOpportunity is number;
+    }
+
+    match /audit_results/{auditId} {
+      allow create: if isSignedIn() 
+        && isValidId(auditId)
+        && isValidAuditResult(incoming());
+      
+      allow get: if isSignedIn() 
+        && isValidId(auditId)
+        && resource.data.userId == request.auth.uid;
+
+      allow list: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+        
+      allow delete: if isSignedIn()
+        && isValidId(auditId)
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}
