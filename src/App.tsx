@@ -32,7 +32,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { DATASETS, Dataset } from './constants';
 import { cn } from './lib/utils';
 import { GoogleGenAI } from '@google/genai';
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
 import { 
   collection, 
   addDoc, 
@@ -40,7 +39,7 @@ import {
   doc, 
   getDocFromServer 
 } from 'firebase/firestore';
-import { auth, db } from './lib/firebase';
+import { db } from './lib/firebase';
 
 // --- Error Handling ---
 enum OperationType {
@@ -68,10 +67,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
+      userId: 'anonymous',
+      email: null,
+      emailVerified: null,
+      isAnonymous: true,
     },
     operationType,
     path
@@ -503,7 +502,6 @@ const MetricGauge = ({ value, label, min = 0, max = 1, target = 0.8, inverse = f
 };
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
   const [threshold, setThreshold] = useState(0.5);
   const [isFixed, setIsFixed] = useState(false);
@@ -511,12 +509,8 @@ export default function App() {
   const [explanation, setExplanation] = useState<{ explanation: string; root_cause: string; fix: string; root_feature?: string; correlation_value?: number } | null>(null);
   const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
 
-  // Initialize Auth
+  // Initialize
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-    });
-
     // Test Connection
     const testConnection = async () => {
       try {
@@ -528,29 +522,10 @@ export default function App() {
       }
     };
     testConnection();
-
-    return () => unsubscribe();
   }, []);
 
-  const handleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed:", error);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
-
   const saveAuditResult = async (metrics: BiasMetrics) => {
-    if (!user || !selectedDataset) return;
+    if (!selectedDataset) return;
     const path = 'audit_results';
     try {
       await addDoc(collection(db, path), {
@@ -562,7 +537,7 @@ export default function App() {
           statisticalParity: metrics.statisticalParity,
           equalOpportunity: metrics.equalOpportunity,
         },
-        userId: user.uid,
+        userId: 'anonymous',
         timestamp: serverTimestamp(),
       });
       alert("Audit result successfully synced to Firestore!");
@@ -777,26 +752,6 @@ END OF REPORT
         </div>
         <div className="flex items-center gap-3 md:gap-6">
           <span className="hidden lg:inline text-sm text-slate-400">Project: Google Solution Challenge 2026</span>
-          {user ? (
-            <div className="flex items-center gap-3">
-              <img src={user.photoURL || ""} alt={user.displayName || ""} className="w-8 h-8 rounded-full border border-primary/20" />
-              <button 
-                onClick={handleLogout}
-                className="text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
-                id="logout-button"
-              >
-                Log Out
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={handleLogin}
-              className="bg-primary hover:bg-primary/90 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-primary/20"
-              id="login-button"
-            >
-              Sign In
-            </button>
-          )}
           <div className="badge-live bg-rose-500/10 text-rose-500 px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[11px] font-bold border border-rose-500/20 whitespace-nowrap">
             ● BIAS DETECTED
           </div>
@@ -908,12 +863,8 @@ END OF REPORT
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button 
                         onClick={() => saveAuditResult(analysis!.metrics)} 
-                        disabled={!user}
-                        className={cn(
-                          "flex-1 sm:flex-none btn-secondary flex items-center justify-center gap-2 py-2 text-xs md:text-sm",
-                          !user && "opacity-50 cursor-not-allowed"
-                        )}
-                        title={user ? "Save audit to Cloud" : "Sign in to save audits"}
+                        className="flex-1 sm:flex-none btn-secondary flex items-center justify-center gap-2 py-2 text-xs md:text-sm"
+                        title="Save audit results publicly"
                       >
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         Save Audit

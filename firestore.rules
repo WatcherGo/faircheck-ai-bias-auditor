@@ -34,7 +34,7 @@ service cloud.firestore {
         && data.datasetId is string && data.datasetId.size() <= 100
         && data.threshold is number
         && data.isFixed is bool
-        && data.userId == request.auth.uid
+        && data.userId == 'anonymous'
         && data.timestamp == request.time
         && data.metrics is map
         && data.metrics.keys().hasAll(['disparateImpact', 'statisticalParity', 'equalOpportunity'])
@@ -45,20 +45,9 @@ service cloud.firestore {
     }
 
     match /audit_results/{auditId} {
-      allow create: if isSignedIn() 
-        && isValidId(auditId)
-        && isValidAuditResult(incoming());
+      allow create: if isValidAuditResult(incoming());
       
-      allow get: if isSignedIn() 
-        && isValidId(auditId)
-        && resource.data.userId == request.auth.uid;
-
-      allow list: if isSignedIn()
-        && resource.data.userId == request.auth.uid;
-        
-      allow delete: if isSignedIn()
-        && isValidId(auditId)
-        && resource.data.userId == request.auth.uid;
+      allow get, list: if true; // Allow public viewing of audit results for demo
     }
   }
 }
