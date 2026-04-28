@@ -6,10 +6,11 @@
 **Live Demo:** [https://gen-lang-client-0942947400.web.app/](https://gen-lang-client-0942947400.web.app/)
 
 ## 🌟 Google Solution Challenge 2026
+**Challenge Category:** [Unbiased AI Decision] - Open Innovation
 
 ### UN Sustainable Development Goals (SDGs)
-- **SDG 10: Reduced Inequalities**: FairCheck directly addresses systemic bias in automated decision-making systems (AI/ML), ensuring that algorithms do not perpetuate or amplify social inequalities based on race, gender, or age.
-- **SDG 16: Peace, Justice, and Strong Institutions**: By providing transparency and accountability in algorithms used for loans, hiring, and healthcare, we promote just and inclusive institutions.
+- **SDG 10: Reduced Inequalities**: FairCheck directly addresses systemic bias in automated decision-making systems (AI/ML), ensuring that algorithms do not perpetuate or amplify social inequalities.
+- **SDG 16: Peace, Justice and Strong Institutions**: By providing transparency and accountability in algorithms, we promote just and inclusive institutions.
 
 ---
 
